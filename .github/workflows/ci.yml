@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Generated files are committed, so a stale one would otherwise diverge
+      # silently from its source.
+      - name: Verify generated files are up to date
+        run: |
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+          # --porcelain, not `git diff --exit-code`: the latter cannot see a
+          # *newly* generated file, so an uncommitted .g.dart would pass here
+          # and fail later as a confusing missing-part error from dart analyze.
+          changes=$(git status --porcelain)
+          if [ -n "$changes" ]; then
+            echo "::error::Generated files are stale or uncommitted. Re-run codegen and commit the result."
+            echo "$changes"
+            exit 1
+          fi
+
+      # dart format has no exclude mechanism and ignores `analyzer: exclude:`,
+      # and build_runner emits at a fixed 80-column width, so generated files
+      # are filtered out by path here.
+      - name: Verify formatting
+        run: |
+          files=$(git ls-files '*.dart' \
+            | grep -vE '\.(g|freezed)\.dart$' \
+            | grep -v '^lib/l10n/generated/' || true)
+          if [ -n "$files" ]; then
+            echo "$files" | xargs dart format --output=none --set-exit-if-changed
+          fi
+
+      # Also surfaces riverpod_lint, which is declared in analysis_options.yaml
+      # as an analysis_server_plugin rather than as a pubspec dependency.
+      - name: Analyze
+        run: dart analyze
+
+      # `dart analyze` exits 0 whether or not the plugin loaded, so a failed
+      # plugin resolution would silently remove all riverpod enforcement while
+      # CI stayed green. Assert a known violation is still reported.
+      - name: Verify riverpod_lint is active
+        run: |
+          if dart analyze tool/lint_probe/probe.dart 2>&1 \
+            | tee /dev/stderr \
+            | grep -q 'missing_provider_scope'; then
+            echo "riverpod_lint is active."
+          else
+            echo "::error::riverpod_lint reported nothing for tool/lint_probe/probe.dart. The plugin is not loading — riverpod rules are NOT being enforced."
+            exit 1
+          fi
+
+      - name: Check architecture boundaries
+        run: dart run tool/check_architecture.dart
+
+      # Goldens are excluded: golden images do not reproduce byte-for-byte
+      # across operating systems, and these were authored on a developer
+      # machine. To enforce them, add a macos-latest job running
+      # `flutter test --tags golden` against goldens generated on Linux.
+      - name: Run tests
+        run: flutter test --exclude-tags golden
+
+      - name: Build web
+        run: flutter build web
+
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install and start chromedriver
+        run: |
+          npx --yes @puppeteer/browsers install chromedriver@stable
+          CHROMEDRIVER=$(find "$PWD" -type f -name chromedriver | head -n 1)
+          chmod +x "$CHROMEDRIVER"
+          "$CHROMEDRIVER" --port=4444 &
+          for _ in $(seq 1 10); do
+            curl -sf http://localhost:4444/status && break
+            sleep 1
+          done
+
+      - name: Run web integration tests
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/todo_flow_test.dart \
+            -d web-server \
+            --release

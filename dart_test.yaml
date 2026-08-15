@@ -1,0 +1,5 @@
+# Golden-image rendering is OS-dependent (anti-aliasing and font hinting
+# differ), so goldens authored on one platform do not byte-match on another.
+# They are tagged here and excluded from the Linux CI job. See spec section 11.
+tags:
+  golden:

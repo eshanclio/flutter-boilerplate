@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+  "todoListTitle": "Todos",
+  "@todoListTitle": {
+    "description": "Title shown in the todo list screen's app bar"
+  },
+  "todoListEmpty": "Nothing to do yet.",
+  "@todoListEmpty": {
+    "description": "Empty-state message shown when there are no todos"
+  },
+  "addTodoHint": "What needs doing?",
+  "@addTodoHint": {
+    "description": "Placeholder text for the add-todo input field"
+  },
+  "removeTodoLabel": "Remove todo",
+  "@removeTodoLabel": {
+    "description": "Accessibility label and tooltip for the delete button on a todo"
+  },
+  "errorGeneric": "Something went wrong. Please try again.",
+  "@errorGeneric": {
+    "description": "Generic error message shown when loading or saving fails"
+  }
+}

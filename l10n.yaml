@@ -1,0 +1,12 @@
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated
+
+# Makes AppLocalizations.of(context) non-nullable, so callers need no `!`.
+nullable-getter: false
+
+# Runs `dart format` on generated output. Without this the generated files
+# fail the CI `dart format --set-exit-if-changed` check.
+format: true

@@ -1,0 +1,47 @@
+include: package:flutter_lints/flutter.yaml
+
+# riverpod_lint is an analysis_server_plugin (since riverpod_lint 3.1.0), not a
+# custom_lint plugin. It is declared here — NOT in pubspec.yaml — and its
+# diagnostics surface through plain `dart analyze`. Requires Dart >= 3.10.
+# Plugins may only be declared in the root analysis_options.yaml.
+plugins:
+  riverpod_lint: ^3.1.8
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "lib/l10n/generated/**"
+    - "build/**"
+    # Holds a deliberate riverpod_lint violation, analyzed on purpose by the
+    # "Verify riverpod_lint is active" CI step. Excluded here so it does not
+    # fail the project-wide analyze.
+    - "tool/lint_probe/**"
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    # freezed places annotations on generated members; the analyzer cannot see
+    # that and reports a false positive without this.
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    # Exactly one of always_use_package_imports / prefer_relative_imports may
+    # be enabled — they are mutually exclusive. See spec section 3.
+    - always_use_package_imports
+    - avoid_dynamic_calls
+    - directives_ordering
+    - prefer_final_locals
+    - require_trailing_commas
+    - unawaited_futures
+    - use_super_parameters
