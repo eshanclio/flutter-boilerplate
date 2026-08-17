@@ -110,10 +110,17 @@ jobs:
             sleep 1
           done
 
+      # Not --release: WidgetTester.enterText/receiveAction inject fake
+      # text-input platform messages tagged with a magic client id of -1.
+      # The framework only honors that id inside an `assert(() {...}())`
+      # block (flutter's services/text_input.dart), which release/profile
+      # builds strip entirely — so in --release the synthetic keystrokes
+      # this test sends are silently dropped and the todo never gets
+      # typed. Debug mode keeps the assert, so the test can actually
+      # drive the UI.
       - name: Run web integration tests
         run: |
           flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/todo_flow_test.dart \
-            -d web-server \
-            --release
+            -d web-server
