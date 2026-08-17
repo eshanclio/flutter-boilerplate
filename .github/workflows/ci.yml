@@ -94,7 +94,14 @@ jobs:
 
       - name: Install and start chromedriver
         run: |
-          npx --yes @puppeteer/browsers install chromedriver@stable
+          # `chromedriver@stable` tracks the latest ChromeDriver release, which
+          # can be ahead of the Chrome binary pre-installed on the runner image
+          # (they're updated on independent schedules). ChromeDriver refuses to
+          # start a session against a Chrome major version it doesn't support,
+          # so pin to the major version of the Chrome actually on the runner.
+          CHROME_VERSION=$(google-chrome --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+          CHROME_MAJOR=${CHROME_VERSION%%.*}
+          npx --yes @puppeteer/browsers install chromedriver@${CHROME_MAJOR}
           CHROMEDRIVER=$(find "$PWD" -type f -name chromedriver | head -n 1)
           chmod +x "$CHROMEDRIVER"
           "$CHROMEDRIVER" --port=4444 &
